@@ -1109,6 +1109,7 @@ static int rtw_ndev_notifier_call(struct notifier_block *nb, unsigned long state
 #else
 	struct net_device *dev = ptr;
 #endif
+	_adapter *adapter = rtw_netdev_priv(dev);
 
 	if (dev == NULL)
 		return NOTIFY_DONE;
@@ -1134,6 +1135,8 @@ static int rtw_ndev_notifier_call(struct notifier_block *nb, unsigned long state
 	switch (state) {
 	case NETDEV_CHANGENAME:
 		rtw_adapter_proc_replace(dev);
+		strncpy(adapter->old_ifname, dev->name, IFNAMSIZ);
+		adapter->old_ifname[IFNAMSIZ-1] = 0;
 		break;
 	}
 
@@ -1362,6 +1365,9 @@ int rtw_os_ndev_register(_adapter *adapter, char *name)
 	rtw_init_netdev_name(ndev, name);
 
 	_rtw_memcpy(ndev->dev_addr, adapter_mac_addr(adapter), ETH_ALEN);
+#if defined(CONFIG_NET_NS)
+    dev_net_set(ndev, wiphy_net(adapter_to_wiphy(adapter)));
+#endif //defined(CONFIG_NET_NS)
 
 	/* Tell the network stack we exist */
 	if (register_netdev(ndev) != 0) {
